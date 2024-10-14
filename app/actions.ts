@@ -1,3 +1,4 @@
+// /app/actions.ts
 "use server";
 
 import { encodedRedirect } from "@/utils/utils";
@@ -93,7 +94,7 @@ export const resetPasswordAction = async (formData: FormData) => {
   const confirmPassword = formData.get("confirmPassword") as string;
 
   if (!password || !confirmPassword) {
-    encodedRedirect(
+    return encodedRedirect(
       "error",
       "/protected/reset-password",
       "Password and confirm password are required",
@@ -101,7 +102,7 @@ export const resetPasswordAction = async (formData: FormData) => {
   }
 
   if (password !== confirmPassword) {
-    encodedRedirect(
+    return encodedRedirect(
       "error",
       "/protected/reset-password",
       "Passwords do not match",
@@ -113,18 +114,44 @@ export const resetPasswordAction = async (formData: FormData) => {
   });
 
   if (error) {
-    encodedRedirect(
+    return encodedRedirect(
       "error",
       "/protected/reset-password",
       "Password update failed",
     );
   }
 
-  encodedRedirect("success", "/protected/reset-password", "Password updated");
+  return encodedRedirect(
+    "success",
+    "/protected/reset-password",
+    "Password updated",
+  );
 };
 
 export const signOutAction = async () => {
   const supabase = createClient();
   await supabase.auth.signOut();
   return redirect("/sign-in");
+};
+
+export const roleSelectionAction = async (role: string) => {
+  const supabase = createClient();
+
+  // Get the authenticated user
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+  // Handle potential null user
+  if (userError || !user) {
+    console.error('Error fetching user or no user found:', userError || "No user");
+    return { error: userError || new Error('No user authenticated') };
+  }
+
+  // Insert the role into the user_roles table
+  const { error } = await supabase.from('user_roles').insert({
+    user_id: user.id,
+    role: role,
+    additional_info: {}, // Placeholder for additional info if needed
+  });
+
+  return { error };
 };

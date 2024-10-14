@@ -6,12 +6,25 @@ import { redirect } from "next/navigation";
 export default async function ProtectedPage() {
   const supabase = createClient();
 
+  // Fetch the authenticated user
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
     return redirect("/sign-in");
+  }
+
+  // Fetch the user's role
+  const { data: userRoleData, error: userRoleError } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", user.id)
+    .single(); // Fetching a single role for the authenticated user
+
+  // If no role is found, redirect the user to the role selection page
+  if (!userRoleData || userRoleError) {
+    return redirect("/roles/role-selection");
   }
 
   return (
